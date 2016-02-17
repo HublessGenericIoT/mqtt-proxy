@@ -20,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/HublessGenericIoT/mqtt-proxy/issues"
   },
-  "homepage": "https://github.com/HublessGenericIoT/mqtt-proxy#readme"
+  "homepage": "https://github.com/HublessGenericIoT/mqtt-proxy#readme",
+  "dependencies": {
+    "mosca": "^1.0.2",
+    "mqtt": "^1.7.0"
+  }
 }
