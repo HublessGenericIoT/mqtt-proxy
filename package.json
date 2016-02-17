@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/HublessGenericIoT/mqtt-proxy#readme",
   "dependencies": {
+    "aws-iot-device-sdk": "^1.0.10",
     "mosca": "^1.0.2",
     "mqtt": "^1.7.0"
   }
