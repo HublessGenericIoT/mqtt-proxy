@@ -1,41 +1,36 @@
-var server = require("./server")
+var mosquittoconnection = require("./mostuitto-client")
 var awsconnection = require("./client-aws")
 var async = require("async")
 
-awsconnection.on('message', function(topic, payload) {
-    console.log('Incoming message from AWS:', topic, payload.toString());
-    server.publish(topic, payload); 
-});
-
-server.on("message", function(topic, payload) {
-    console.log("Incoming message from mosca:", topic, payload.toString()); 
-    awsconnection.publish(topic, payload); 
-})
-
-server.on('clientConnected', function(client) {
-    console.log("Server:", 'client connected', client.id);
-});
-
-// fired when a message is received
-server.on('published', function(packet, client) {
+mosquittoconnection.on("message", function(topic, message, packet) {
+    console.log("Mosquitto Connection:", "Recieved message from mosquitto on", topic);
     
-    if(packet.topic.startsWith("$SYS/")) {
+    if(topic.startsWith("proxy")) {
+        console.log("Mosquitto Connection:", "Message was sent from this proxy, ignoring it"); 
         return; 
     }
+    topic = "proxy/" + topic; 
     
-    console.log("Server:", 'Recieved from downstream', packet.payload);
-    console.log("Server:", "Packet", JSON.stringify(packet))
-    //console.log("Server:", "Client", client)
+    console.log("Mosquitto Connection:", "Forwarding message to AWS")
+    awsconnection.publish(topic, message, packet /*Acting as options.*/)
+})
+
+awsconnection.on("message", function(topic, message, packet) {
+    console.log("AWS Connection:", "Recieved message from AWS on", topic)
     
-    console.log("Server:", "Sending to AWS")
-    awsconnection.subscribe(packet.topic);
-    awsconnection.publish(packet.topic, packet.payload, {
-        qos: 2,//packet.qos+1, 
-        retain: packet.retain
-    }, function() {
-        console.log("Message was sent to aws.")
-    }); 
-});
+    if(topic.startsWith("proxy")) {
+        console.log("AWS Connection:", "Message was sent from this proxy, ignoring it"); 
+        return; 
+    }
+    topic = "proxy/" + topic; 
+    
+    console.log("AWS Connection:", "Forwarding message to Mosqiutto");
+    mosquittoconnection.publish(topic, message, packet)
+})
+
+awsconnection.on("error", function(error) {
+    console.log(error); 
+})
 
 async.parallel([
     function(callback) {
@@ -44,25 +39,26 @@ async.parallel([
         */
         awsconnection.on('connect', function() {
             console.log("AWS:", "Connection is ready")
-            awsconnection.subscribe('topic_1');
-            awsconnection.publish('topic_1', JSON.stringify({ test_data: "Client has started"}));
+            awsconnection.subscribe("#")
             callback(null); 
         });
-    }, 
+    },
     function(callback) {
-        server.on('ready', function() {
-            console.log("Mosca:", "Server is ready"); 
-            callback(null); 
+        mosquittoconnection.on('connect', function() {
+            console.log("Mosca:", "Server is ready")
+            mosquittoconnection.subscribe("#");
+            callback(null);
         });  //on init it fires up setup()
     }
 ], function(err, result) {
+    console.log("Connections initialized");
     //------- Client Code ---------
     var mqtt    = require('mqtt');
     var client  = mqtt.connect('mqtt://localhost:1883');
 
     client.on('connect', function () {
-        client.subscribe('presence');
-        client.publish('presence', 'Hello mqtt');
+        client.subscribe("#")
+        client.publish("connection/message", "Hello, from the client side.")
     });
 
     client.on('message', function (topic, message) {
