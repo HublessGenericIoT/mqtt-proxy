@@ -1,4 +1,10 @@
 var mqtt    = require('mqtt');
-var client  = mqtt.connect('mqtt://localhost:1883');
+var private = require("./private")
 
-module.exports = client; 
+var client  = mqtt.connect(private.url, {
+    username: private.username,
+    password: private.password,
+    clientId: private.clientid
+});
+
+module.exports = client;
