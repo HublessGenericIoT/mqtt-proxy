@@ -55,6 +55,19 @@ node index.js
 
 The proxy should send a few messages over the wire on startup. 
 
+##### Security
+
+The login information for the local mqtt broker is stored in `private.js` in the project root. That file should look like: 
+
+````
+module.exports = {
+    url: 'mqtt://0.0.0.0:1883',
+    username: "username",
+    password: "password",
+    clientId: "client id"
+};
+````
+
 ## Contributing
 
 Feel free to contribute to this, just file a PR please.
