@@ -1,35 +1,37 @@
+require('console-stamp')(console, '[HH:MM:ss.l]');
+
 var mosquittoconnection = require("./mostuitto-client")
 var awsconnection = require("./client-aws")
 var async = require("async")
 
 mosquittoconnection.on("message", function(topic, message, packet) {
     console.log("Mosquitto Connection:", "Recieved message from mosquitto on", topic);
-    
+
     if(topic.startsWith("proxy")) {
-        console.log("Mosquitto Connection:", "Message was sent from this proxy, ignoring it"); 
-        return; 
+        console.log("Mosquitto Connection:", "Message was sent from this proxy, ignoring it");
+        return;
     }
-    topic = "proxy/" + topic; 
-    
+    topic = "proxy/" + topic;
+
     console.log("Mosquitto Connection:", "Forwarding message to AWS")
     awsconnection.publish(topic, message, packet /*Acting as options.*/)
 })
 
 awsconnection.on("message", function(topic, message, packet) {
     console.log("AWS Connection:", "Recieved message from AWS on", topic)
-    
+
     if(topic.startsWith("proxy")) {
-        console.log("AWS Connection:", "Message was sent from this proxy, ignoring it"); 
-        return; 
+        console.log("AWS Connection:", "Message was sent from this proxy, ignoring it");
+        return;
     }
-    topic = "proxy/" + topic; 
-    
+    topic = "proxy/" + topic;
+
     console.log("AWS Connection:", "Forwarding message to Mosqiutto");
     mosquittoconnection.publish(topic, message, packet)
 })
 
 awsconnection.on("error", function(error) {
-    console.log(error); 
+    console.log(error);
 })
 
 async.parallel([
@@ -40,7 +42,7 @@ async.parallel([
         awsconnection.on('connect', function() {
             console.log("AWS:", "Connection is ready")
             awsconnection.subscribe("#")
-            callback(null); 
+            callback(null);
         });
     },
     function(callback) {
@@ -53,16 +55,4 @@ async.parallel([
 ], function(err, result) {
     console.log("Connections initialized");
     //------- Client Code ---------
-    var mqtt    = require('mqtt');
-    var client  = mqtt.connect('mqtt://localhost:1883');
-
-    client.on('connect', function () {
-        client.subscribe("#")
-        client.publish("connection/message", "Hello, from the client side.")
-    });
-
-    client.on('message', function (topic, message) {
-        // message is Buffer
-        console.log("Client:", message.toString());
-    });
-}) 
+})
